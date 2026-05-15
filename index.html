@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Numbers</title>
+<title>Order Game</title>
 <style>
   * {
     margin: 0;
@@ -170,18 +170,77 @@
     pointer-events: none;
   }
 
-  #panel {
+  #settingsBtn {
     position: fixed;
     right: 16px;
     bottom: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #1f1f1f;
+    color: #ddd;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 150ms ease, transform 250ms ease;
+    z-index: 10;
+  }
+
+  #settingsBtn:hover {
+    background: #2a2a2a;
+  }
+
+  #settingsBtn svg {
+    width: 22px;
+    height: 22px;
+    transition: transform 350ms ease;
+  }
+
+  #settingsBtn.open svg {
+    transform: rotate(90deg);
+  }
+
+  #panel {
+    position: fixed;
+    right: 16px;
+    bottom: 72px;
     background: #1f1f1f;
     padding: 14px 16px;
-    border-radius: 10px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: 10px;
     font-size: 13px;
-    min-width: 220px;
+    min-width: 240px;
+    transform-origin: bottom right;
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  #panel.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  #resetColors {
+    margin-top: 4px;
+    background: #2e2e2e;
+    color: #f0f0f0;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 120ms ease;
+  }
+
+  #resetColors:hover {
+    background: #3a3a3a;
   }
 
   .row {
@@ -274,7 +333,15 @@
     <label>Gap</label>
     <input type="range" id="gap" min="0" max="60" step="1" value="0">
   </div>
+  <button id="resetColors">Reset Colors</button>
 </div>
+
+<button id="settingsBtn" aria-label="Settings">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+  </svg>
+</button>
 
 <script>
 (function() {
@@ -285,6 +352,18 @@
   const resultEl = document.getElementById('result');
   const timesBtn = document.getElementById('timesBtn');
   const timesPanel = document.getElementById('timesPanel');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const panel = document.getElementById('panel');
+  const resetColorsBtn = document.getElementById('resetColors');
+
+  const DEFAULT_COLORS = {
+    c1: '#22c55e',
+    c2: '#eab308',
+    c3: '#ef4444',
+    cDef: '#4a4a4a',
+    cDone: '#1f1f1f',
+    cBg: '#2b2b2b'
+  };
   const c1 = document.getElementById('c1');
   const c2 = document.getElementById('c2');
   const c3 = document.getElementById('c3');
@@ -529,6 +608,23 @@
 
   timesBtn.addEventListener('click', function() {
     timesPanel.classList.toggle('show');
+  });
+
+  settingsBtn.addEventListener('click', function() {
+    const isOpen = panel.classList.toggle('open');
+    settingsBtn.classList.toggle('open', isOpen);
+  });
+
+  resetColorsBtn.addEventListener('click', function() {
+    c1.value = DEFAULT_COLORS.c1;
+    c2.value = DEFAULT_COLORS.c2;
+    c3.value = DEFAULT_COLORS.c3;
+    cDef.value = DEFAULT_COLORS.cDef;
+    cDone.value = DEFAULT_COLORS.cDone;
+    cBg.value = DEFAULT_COLORS.cBg;
+    applyBg();
+    paint();
+    saveSettings();
   });
 
   loadSettings();

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Game</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #2b2b2b;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #e0e0e0;
+    touch-action: manipulation;
+  }
+
+  #stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0;
+    transform-origin: center center;
+    will-change: transform;
+  }
+
+  #hint {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    color: #888;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+  }
+
+  #result {
+    position: fixed;
+    top: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 22px;
+    font-weight: 600;
+    color: #f0f0f0;
+    letter-spacing: 1px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+
+  #result.show {
+    opacity: 1;
+  }
+
+  #timesBtn {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    background: #1f1f1f;
+    color: #f0f0f0;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  #timesBtn:hover {
+    background: #2a2a2a;
+  }
+
+  #timesPanel {
+    position: fixed;
+    bottom: 56px;
+    left: 16px;
+    background: #1f1f1f;
+    border-radius: 10px;
+    padding: 12px 14px;
+    min-width: 180px;
+    max-height: 320px;
+    overflow-y: auto;
+    font-size: 13px;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  #timesPanel.show {
+    display: flex;
+  }
+
+  #timesPanel .title {
+    font-weight: 600;
+    color: #aaa;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #timesPanel .clear {
+    background: transparent;
+    color: #777;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 4px;
+  }
+
+  #timesPanel .clear:hover {
+    color: #f55;
+  }
+
+  #timesPanel .entry {
+    color: #ddd;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #timesPanel .empty {
+    color: #666;
+    font-style: italic;
+  }
+
+  .cell {
+    width: 110px;
+    height: 110px;
+    background: #4a4a4a;
+    border: none;
+    border-radius: 0;
+    color: #f0f0f0;
+    font-size: 36px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 60ms linear;
+    touch-action: manipulation;
+    outline: none;
+  }
+
+  .cell.hide-num {
+    color: transparent;
+  }
+
+  .cell.done {
+    background: #1f1f1f;
+    color: transparent;
+    pointer-events: none;
+  }
+
+  #panel {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    background: #1f1f1f;
+    padding: 14px 16px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13px;
+    min-width: 220px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .row label {
+    flex: 1;
+  }
+
+  input[type="color"] {
+    width: 36px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  input[type="range"] {
+    flex: 1.4;
+    cursor: pointer;
+  }
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+</style>
+</head>
+<body>
+
+<div id="hint">press SPACE for a new game</div>
+<div id="result"></div>
+
+<div id="stage">
+  <div id="board"></div>
+</div>
+
+<button id="timesBtn">Recent Times</button>
+<div id="timesPanel"></div>
+
+<div id="panel">
+  <div class="row">
+    <label>Current</label>
+    <input type="color" id="c1" value="#22c55e">
+  </div>
+  <div class="row">
+    <label>Next</label>
+    <input type="color" id="c2" value="#eab308">
+  </div>
+  <div class="row">
+    <label>Then</label>
+    <input type="color" id="c3" value="#ef4444">
+  </div>
+  <div class="row">
+    <label>Default</label>
+    <input type="color" id="cDef" value="#4a4a4a">
+  </div>
+  <div class="row">
+    <label>Background</label>
+    <input type="color" id="cBg" value="#2b2b2b">
+  </div>
+  <div class="row">
+    <label>Show numbers</label>
+    <input type="checkbox" id="shownum" checked>
+  </div>
+  <div class="row">
+    <label>Scale</label>
+    <input type="range" id="scale" min="0.3" max="2" step="0.01" value="1">
+  </div>
+  <div class="row">
+    <label>Y offset</label>
+    <input type="range" id="yoff" min="-400" max="400" step="1" value="0">
+  </div>
+  <div class="row">
+    <label>Roundness</label>
+    <input type="range" id="round" min="0" max="55" step="1" value="0">
+  </div>
+  <div class="row">
+    <label>Gap</label>
+    <input type="range" id="gap" min="0" max="60" step="1" value="0">
+  </div>
+</div>
+
+<script>
+(function() {
+  const STORE_KEY = 'orderGameSettings.v1';
+  const TIMES_KEY = 'orderGameTimes.v1';
+  const MAX_TIMES = 25;
+  const board = document.getElementById('board');
+  const resultEl = document.getElementById('result');
+  const timesBtn = document.getElementById('timesBtn');
+  const timesPanel = document.getElementById('timesPanel');
+  const c1 = document.getElementById('c1');
+  const c2 = document.getElementById('c2');
+  const c3 = document.getElementById('c3');
+  const cDef = document.getElementById('cDef');
+  const cBg = document.getElementById('cBg');
+  const shownum = document.getElementById('shownum');
+  const scale = document.getElementById('scale');
+  const yoff = document.getElementById('yoff');
+  const roundEl = document.getElementById('round');
+  const gapEl = document.getElementById('gap');
+
+  const cells = [];
+  let order = [];
+  let progress = 0;
+  let startTime = 0;
+  let times = [];
+
+  function loadTimes() {
+    try {
+      const raw = localStorage.getItem(TIMES_KEY);
+      times = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(times)) times = [];
+    } catch (e) { times = []; }
+  }
+
+  function saveTimes() {
+    try { localStorage.setItem(TIMES_KEY, JSON.stringify(times)); } catch (e) {}
+  }
+
+  function formatTime(ms) {
+    const totalSec = ms / 1000;
+    if (totalSec < 60) return totalSec.toFixed(2) + 's';
+    const m = Math.floor(totalSec / 60);
+    const s = (totalSec - m * 60).toFixed(2);
+    return m + 'm ' + s + 's';
+  }
+
+  function renderTimes() {
+    timesPanel.innerHTML = '';
+    const head = document.createElement('div');
+    head.className = 'title';
+    head.innerHTML = '<span>Recent Times</span>';
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'clear';
+    clearBtn.textContent = 'clear';
+    clearBtn.addEventListener('click', function() {
+      times = [];
+      saveTimes();
+      renderTimes();
+    });
+    head.appendChild(clearBtn);
+    timesPanel.appendChild(head);
+
+    if (!times.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'no games yet';
+      timesPanel.appendChild(empty);
+      return;
+    }
+
+    const sorted = times.slice().sort((a, b) => a - b);
+    const best = sorted[0];
+
+    for (let i = 0; i < times.length; i++) {
+      const row = document.createElement('div');
+      row.className = 'entry';
+      const mark = times[i] === best ? ' ★' : '';
+      row.textContent = (i + 1) + '. ' + formatTime(times[i]) + mark;
+      timesPanel.appendChild(row);
+    }
+  }
+
+  const settingFields = {
+    c1: { el: c1, kind: 'value' },
+    c2: { el: c2, kind: 'value' },
+    c3: { el: c3, kind: 'value' },
+    cDef: { el: cDef, kind: 'value' },
+    cBg: { el: cBg, kind: 'value' },
+    shownum: { el: shownum, kind: 'checked' },
+    scale: { el: scale, kind: 'value' },
+    yoff: { el: yoff, kind: 'value' },
+    round: { el: roundEl, kind: 'value' },
+    gap: { el: gapEl, kind: 'value' }
+  };
+
+  function loadSettings() {
+    let data = null;
+    try { data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) {}
+    if (!data) return;
+    for (const key in settingFields) {
+      if (data[key] === undefined) continue;
+      const f = settingFields[key];
+      if (f.kind === 'checked') f.el.checked = !!data[key];
+      else f.el.value = data[key];
+    }
+  }
+
+  function saveSettings() {
+    const out = {};
+    for (const key in settingFields) {
+      const f = settingFields[key];
+      out[key] = f.kind === 'checked' ? f.el.checked : f.el.value;
+    }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(out)); } catch (e) {}
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function buildBoard() {
+    board.innerHTML = '';
+    cells.length = 0;
+    order = shuffle(Array.from({length: 14}, (_, i) => i + 1));
+    progress = 0;
+
+    for (let i = 0; i < 14; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'cell';
+      btn.textContent = order[i];
+      btn.dataset.num = order[i];
+      board.appendChild(btn);
+      cells.push(btn);
+    }
+    applyShowNum();
+    applyStyleVars();
+    paint();
+    resultEl.classList.remove('show');
+    startTime = performance.now();
+  }
+
+  function finishGame() {
+    const elapsed = performance.now() - startTime;
+    resultEl.textContent = formatTime(elapsed);
+    resultEl.classList.add('show');
+    times.unshift(elapsed);
+    if (times.length > MAX_TIMES) times.length = MAX_TIMES;
+    saveTimes();
+    renderTimes();
+  }
+
+  function paint() {
+    const target = progress + 1;
+    const col1 = c1.value;
+    const col2 = c2.value;
+    const col3 = c3.value;
+    const colDef = cDef.value;
+
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
+      const num = +cell.dataset.num;
+      if (num < target) {
+        cell.classList.add('done');
+        cell.style.background = '';
+      } else if (num === target) {
+        cell.style.background = col1;
+      } else if (num === target + 1) {
+        cell.style.background = col2;
+      } else if (num === target + 2) {
+        cell.style.background = col3;
+      } else {
+        cell.style.background = colDef;
+      }
+    }
+  }
+
+  function applyShowNum() {
+    const show = shownum.checked;
+    for (let i = 0; i < cells.length; i++) {
+      if (show) cells[i].classList.remove('hide-num');
+      else cells[i].classList.add('hide-num');
+    }
+  }
+
+  function applyTransform() {
+    board.style.transform = `translateY(${yoff.value}px) scale(${scale.value})`;
+  }
+
+  function applyStyleVars() {
+    const r = roundEl.value + 'px';
+    board.style.gap = gapEl.value + 'px';
+    for (let i = 0; i < cells.length; i++) {
+      cells[i].style.borderRadius = r;
+    }
+  }
+
+  function applyBg() {
+    document.body.style.background = cBg.value;
+    document.documentElement.style.background = cBg.value;
+  }
+
+  board.addEventListener('pointerdown', function(e) {
+    const t = e.target;
+    if (!t.classList.contains('cell')) return;
+    if (t.classList.contains('done')) return;
+    const num = +t.dataset.num;
+    if (num === progress + 1) {
+      progress++;
+      paint();
+      if (progress >= 14) {
+        finishGame();
+      }
+    }
+  }, { passive: true });
+
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('selectstart', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+
+  function bind(el, evt, fn) {
+    el.addEventListener(evt, function() {
+      fn();
+      saveSettings();
+    });
+  }
+
+  bind(c1, 'input', paint);
+  bind(c2, 'input', paint);
+  bind(c3, 'input', paint);
+  bind(cDef, 'input', paint);
+  bind(cBg, 'input', applyBg);
+  bind(shownum, 'change', applyShowNum);
+  bind(scale, 'input', applyTransform);
+  bind(yoff, 'input', applyTransform);
+  bind(roundEl, 'input', applyStyleVars);
+  bind(gapEl, 'input', applyStyleVars);
+
+  window.addEventListener('keydown', function(e) {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      buildBoard();
+    }
+  });
+
+  timesBtn.addEventListener('click', function() {
+    timesPanel.classList.toggle('show');
+  });
+
+  loadSettings();
+  loadTimes();
+  renderTimes();
+  applyBg();
+  buildBoard();
+  applyTransform();
+})();
+</script>
+
+</body>
+</html>

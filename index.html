@@ -380,6 +380,7 @@
   let order = [];
   let progress = 0;
   let startTime = 0;
+  let firstClickTime = 0;
   let times = [];
 
   function loadTimes() {
@@ -500,11 +501,13 @@
     paint();
     resultEl.classList.remove('show');
     startTime = performance.now();
+    firstClickTime = 0;
   }
 
   function finishGame() {
     const elapsed = performance.now() - startTime;
-    resultEl.textContent = formatTime(elapsed);
+    const fc = firstClickTime - startTime;
+    resultEl.textContent = formatTime(elapsed) + '  ·  FC ' + formatTime(fc);
     resultEl.classList.add('show');
     times.unshift(elapsed);
     if (times.length > MAX_TIMES) times.length = MAX_TIMES;
@@ -568,6 +571,7 @@
     if (t.classList.contains('done')) return;
     const num = +t.dataset.num;
     if (num === progress + 1) {
+      if (progress === 0) firstClickTime = performance.now();
       progress++;
       paint();
       if (progress >= 14) {

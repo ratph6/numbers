@@ -247,6 +247,10 @@
     <input type="color" id="cDef" value="#4a4a4a">
   </div>
   <div class="row">
+    <label>Completed</label>
+    <input type="color" id="cDone" value="#1f1f1f">
+  </div>
+  <div class="row">
     <label>Background</label>
     <input type="color" id="cBg" value="#2b2b2b">
   </div>
@@ -285,6 +289,7 @@
   const c2 = document.getElementById('c2');
   const c3 = document.getElementById('c3');
   const cDef = document.getElementById('cDef');
+  const cDone = document.getElementById('cDone');
   const cBg = document.getElementById('cBg');
   const shownum = document.getElementById('shownum');
   const scale = document.getElementById('scale');
@@ -359,6 +364,7 @@
     c2: { el: c2, kind: 'value' },
     c3: { el: c3, kind: 'value' },
     cDef: { el: cDef, kind: 'value' },
+    cDone: { el: cDone, kind: 'value' },
     cBg: { el: cBg, kind: 'value' },
     shownum: { el: shownum, kind: 'checked' },
     scale: { el: scale, kind: 'value' },
@@ -439,7 +445,7 @@
       const num = +cell.dataset.num;
       if (num < target) {
         cell.classList.add('done');
-        cell.style.background = '';
+        cell.style.background = cDone.value;
       } else if (num === target) {
         cell.style.background = col1;
       } else if (num === target + 1) {
@@ -506,6 +512,7 @@
   bind(c2, 'input', paint);
   bind(c3, 'input', paint);
   bind(cDef, 'input', paint);
+  bind(cDone, 'input', paint);
   bind(cBg, 'input', applyBg);
   bind(shownum, 'change', applyShowNum);
   bind(scale, 'input', applyTransform);

@@ -15,6 +15,7 @@
     -ms-user-select: none;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+    cursor: default;
   }
 
   html, body {
@@ -82,7 +83,6 @@
     border: none;
     padding: 8px 14px;
     border-radius: 8px;
-    cursor: pointer;
     font-size: 13px;
   }
 
@@ -123,7 +123,6 @@
     background: transparent;
     color: #777;
     border: none;
-    cursor: pointer;
     font-size: 11px;
     padding: 2px 4px;
   }
@@ -151,7 +150,6 @@
     color: #f0f0f0;
     font-size: 36px;
     font-weight: 600;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -170,6 +168,7 @@
     pointer-events: none;
   }
 
+
   #settingsBtn {
     position: fixed;
     right: 16px;
@@ -180,7 +179,6 @@
     background: #1f1f1f;
     color: #ddd;
     border: none;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -234,7 +232,6 @@
     border: none;
     padding: 8px 12px;
     border-radius: 6px;
-    cursor: pointer;
     font-size: 13px;
     transition: background 120ms ease;
   }
@@ -259,19 +256,16 @@
     height: 28px;
     border: none;
     background: transparent;
-    cursor: pointer;
     padding: 0;
   }
 
   input[type="range"] {
     flex: 1.4;
-    cursor: pointer;
   }
 
   input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    cursor: pointer;
   }
 
 </style>
@@ -333,6 +327,30 @@
     <label>Gap</label>
     <input type="range" id="gap" min="0" max="60" step="1" value="0">
   </div>
+  <div class="row">
+    <label>Fade clicked</label>
+    <input type="checkbox" id="fadeClicked" checked>
+  </div>
+  <div class="row">
+    <label>Click sound</label>
+    <input type="checkbox" id="sndOn" checked>
+  </div>
+  <div class="row">
+    <label>Pitch</label>
+    <input type="range" id="pitch" min="120" max="2400" step="10" value="800">
+  </div>
+  <div class="row">
+    <label>Volume</label>
+    <input type="range" id="vol" min="0" max="100" step="1" value="70">
+  </div>
+  <div class="row">
+    <label>Osu mode (G/H)</label>
+    <input type="checkbox" id="osuMode">
+  </div>
+  <div class="row">
+    <label>Relax mode (hover)</label>
+    <input type="checkbox" id="relaxMode">
+  </div>
   <button id="resetColors">Reset Colors</button>
 </div>
 
@@ -375,6 +393,53 @@
   const yoff = document.getElementById('yoff');
   const roundEl = document.getElementById('round');
   const gapEl = document.getElementById('gap');
+  const fadeClicked = document.getElementById('fadeClicked');
+  const sndOn = document.getElementById('sndOn');
+  const pitch = document.getElementById('pitch');
+  const vol = document.getElementById('vol');
+  const osuMode = document.getElementById('osuMode');
+  const relaxMode = document.getElementById('relaxMode');
+
+  let audioCtx = null;
+  let noiseBuf = null;
+  function getNoise(ctx) {
+    if (noiseBuf) return noiseBuf;
+    const len = Math.floor(ctx.sampleRate * 0.05);
+    noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return noiseBuf;
+  }
+  function playClick() {
+    if (!sndOn.checked) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const v = Math.max(0, Math.min(1, (+vol.value) / 100));
+      if (v <= 0) return;
+      const t = audioCtx.currentTime;
+      const f = +pitch.value;
+      const src = audioCtx.createBufferSource();
+      src.buffer = getNoise(audioCtx);
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = f;
+      bp.Q.value = 6;
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = Math.min(800, f * 0.8);
+      const gain = audioCtx.createGain();
+      const peak = Math.max(0.0002, 0.7 * v);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(peak, t + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      src.connect(bp).connect(hp).connect(gain).connect(audioCtx.destination);
+      src.start(t);
+      src.stop(t + 0.04);
+    } catch (e) {}
+  }
+
+  let hoveredCell = null;
 
   const cells = [];
   let order = [];
@@ -450,7 +515,13 @@
     scale: { el: scale, kind: 'value' },
     yoff: { el: yoff, kind: 'value' },
     round: { el: roundEl, kind: 'value' },
-    gap: { el: gapEl, kind: 'value' }
+    gap: { el: gapEl, kind: 'value' },
+    fadeClicked: { el: fadeClicked, kind: 'checked' },
+    sndOn: { el: sndOn, kind: 'checked' },
+    pitch: { el: pitch, kind: 'value' },
+    vol: { el: vol, kind: 'value' },
+    osuMode: { el: osuMode, kind: 'checked' },
+    relaxMode: { el: relaxMode, kind: 'checked' }
   };
 
   function loadSettings() {
@@ -527,7 +598,7 @@
       const num = +cell.dataset.num;
       if (num < target) {
         cell.classList.add('done');
-        cell.style.background = cDone.value;
+        cell.style.background = fadeClicked.checked ? cDone.value : colDef;
       } else if (num === target) {
         cell.style.background = col1;
       } else if (num === target + 1) {
@@ -565,20 +636,44 @@
     document.documentElement.style.background = cBg.value;
   }
 
-  board.addEventListener('pointerdown', function(e) {
-    const t = e.target;
-    if (!t.classList.contains('cell')) return;
+  function applyFadeClicked() {
+    if (fadeClicked.checked) document.body.classList.remove('no-fade');
+    else document.body.classList.add('no-fade');
+    paint();
+  }
+
+  function tryHit(t) {
+    if (!t || !t.classList || !t.classList.contains('cell')) return;
     if (t.classList.contains('done')) return;
+    if (progress >= 14) return;
     const num = +t.dataset.num;
     if (num === progress + 1) {
       if (progress === 0) firstClickTime = performance.now();
       progress++;
+      playClick();
       paint();
-      if (progress >= 14) {
-        finishGame();
-      }
+      if (progress >= 14) finishGame();
     }
+  }
+
+  board.addEventListener('pointerdown', function(e) {
+    tryHit(e.target);
   }, { passive: true });
+
+  board.addEventListener('pointerover', function(e) {
+    const t = e.target;
+    if (t && t.classList && t.classList.contains('cell')) hoveredCell = t;
+  });
+  board.addEventListener('pointerout', function(e) {
+    if (e.target === hoveredCell) hoveredCell = null;
+  });
+  board.addEventListener('pointermove', function(e) {
+    const t = e.target;
+    if (t && t.classList && t.classList.contains('cell')) {
+      hoveredCell = t;
+      if (relaxMode.checked) tryHit(t);
+    }
+  });
 
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('selectstart', e => e.preventDefault());
@@ -602,11 +697,22 @@
   bind(yoff, 'input', applyTransform);
   bind(roundEl, 'input', applyStyleVars);
   bind(gapEl, 'input', applyStyleVars);
+  bind(fadeClicked, 'change', applyFadeClicked);
+  bind(sndOn, 'change', function() {});
+  bind(pitch, 'input', function() {});
+  bind(vol, 'input', function() {});
+  bind(osuMode, 'change', function() {});
+  bind(relaxMode, 'change', function() {});
 
   window.addEventListener('keydown', function(e) {
     if (e.code === 'Space') {
       e.preventDefault();
       buildBoard();
+      return;
+    }
+    if (osuMode.checked && !e.repeat && (e.code === 'KeyG' || e.code === 'KeyH')) {
+      e.preventDefault();
+      if (hoveredCell) tryHit(hoveredCell);
     }
   });
 
@@ -637,6 +743,7 @@
   applyBg();
   buildBoard();
   applyTransform();
+  applyFadeClicked();
 })();
 </script>
 

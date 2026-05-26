@@ -351,6 +351,10 @@
     <label>Relax mode (hover)</label>
     <input type="checkbox" id="relaxMode">
   </div>
+  <div class="row">
+    <label>Infinite mode</label>
+    <input type="checkbox" id="infiniteMode">
+  </div>
   <button id="resetColors">Reset Colors</button>
 </div>
 
@@ -399,6 +403,7 @@
   const vol = document.getElementById('vol');
   const osuMode = document.getElementById('osuMode');
   const relaxMode = document.getElementById('relaxMode');
+  const infiniteMode = document.getElementById('infiniteMode');
 
   let audioCtx = null;
   let noiseBuf = null;
@@ -521,7 +526,8 @@
     pitch: { el: pitch, kind: 'value' },
     vol: { el: vol, kind: 'value' },
     osuMode: { el: osuMode, kind: 'checked' },
-    relaxMode: { el: relaxMode, kind: 'checked' }
+    relaxMode: { el: relaxMode, kind: 'checked' },
+    infiniteMode: { el: infiniteMode, kind: 'checked' }
   };
 
   function loadSettings() {
@@ -645,14 +651,19 @@
   function tryHit(t) {
     if (!t || !t.classList || !t.classList.contains('cell')) return;
     if (t.classList.contains('done')) return;
-    if (progress >= 14) return;
+    if (!infiniteMode.checked && progress >= 14) return;
     const num = +t.dataset.num;
     if (num === progress + 1) {
       if (progress === 0) firstClickTime = performance.now();
       progress++;
       playClick();
+      if (infiniteMode.checked) {
+        const next = progress + 14;
+        t.dataset.num = next;
+        t.textContent = next;
+      }
       paint();
-      if (progress >= 14) finishGame();
+      if (!infiniteMode.checked && progress >= 14) finishGame();
     }
   }
 
@@ -703,6 +714,7 @@
   bind(vol, 'input', function() {});
   bind(osuMode, 'change', function() {});
   bind(relaxMode, 'change', function() {});
+  bind(infiniteMode, 'change', function() {});
 
   window.addEventListener('keydown', function(e) {
     if (e.code === 'Space') {

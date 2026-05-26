@@ -659,8 +659,12 @@
       playClick();
       if (infiniteMode.checked) {
         const next = progress + 14;
-        t.dataset.num = next;
-        t.textContent = next;
+        const others = cells.filter(c => c !== t);
+        const swap = others[Math.floor(Math.random() * others.length)];
+        t.dataset.num = swap.dataset.num;
+        t.textContent = swap.dataset.num;
+        swap.dataset.num = next;
+        swap.textContent = next;
       }
       paint();
       if (!infiniteMode.checked && progress >= 14) finishGame();
